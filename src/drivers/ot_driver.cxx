@@ -84,7 +84,7 @@ void OTDriver::OT_send(std::string m0, std::string m1) {
   //send the message
   this->network_driver->send(this->crypto_driver->encrypt_and_tag(this->AES_key, this->HMAC_key, &enc_msgs_to_send));
 
-  this->network_driver->disconnect();
+  //this->network_driver->disconnect();
 }
 
 /*
@@ -141,7 +141,7 @@ std::string OTDriver::OT_recv(int choice_bit) {
     msg = this->crypto_driver->AES_decrypt(k_c, enc_msgs.iv1, enc_msgs.e1);
   }
 
-  this->network_driver->disconnect();
+  //this->network_driver->disconnect();
 
   return msg;
 }
