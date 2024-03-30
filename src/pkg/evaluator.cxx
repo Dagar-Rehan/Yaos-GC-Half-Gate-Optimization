@@ -107,7 +107,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
     wire.value = string_to_byteblock(this->ot_driver->OT_recv(input.at(i)));
     my_inputs_from_garbler.push_back(wire);
   }
-
+  throw std::runtime_error("Before Merged Test - merged");
   //evaulate the circuit
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
