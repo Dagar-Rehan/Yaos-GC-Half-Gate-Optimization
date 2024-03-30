@@ -120,7 +120,14 @@ CryptoPP::SecByteBlock GarblerClient::encrypt_label(GarbledWire lhs,
                                                     GarbledWire rhs,
                                                     GarbledWire output) {
   // TODO: implement me!
-  throw std::runtime_error("IN GarblerClient::encrypt_label!!!! TEST!!!");
+  SecByteBlock output_val = output.value;
+  output_val.CleanGrow(LABEL_TAG_LENGTH * 2);
+
+  CryptoPP::SecByteBlock hash = this->crypto_driver->hash_inputs(lhs.value, rhs.value);
+
+  CryptoPP::xorbuf(hash, output_val, output_val.size());
+
+  return hash;
 }
 
 /**
