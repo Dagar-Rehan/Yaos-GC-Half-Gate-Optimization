@@ -77,7 +77,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   auto keys = this->HandleKeyExchange();
 
   // TODO: implement me!
-  //throw std::runtime_error("EvaluatorClient::run - Testing!!!");
   std::pair<std::vector<unsigned char>, bool> intermediate;
 
   //get the garbled circuit
@@ -112,13 +111,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
   merged.resize(this->circuit.num_wire);
-
-  //CUSTOM_LOG(lg, debug) << "total wires - " + std::to_string(this->circuit.num_wire) << std::endl;
-  CUSTOM_LOG(lg, debug) << "garbler_input_length - " + std::to_string(this->circuit.garbler_input_length) << std::endl;
-  CUSTOM_LOG(lg, debug) << "evaluator_input_length - " + std::to_string(this->circuit.evaluator_input_length) << std::endl;
-  CUSTOM_LOG(lg, debug) << "garblers_inputs.size() - " + std::to_string(garblers_inputs.size()) << std::endl;
-  CUSTOM_LOG(lg, debug) << "my_inputs_from_garbler.size() - " + std::to_string(my_inputs_from_garbler.size()) << std::endl;
-
 
   for (int i = 0; i < garbled_circuit.size(); i++) {
     GarbledGate current_gate_garbled = garbled_circuit.at(i);
@@ -184,8 +176,6 @@ GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
       return output;
     }
   }
-
-  //CUSTOM_LOG(lg, debug) << "In side of EvaluatorClient::evaluate_gate at the very end!!!" << std::endl;
 
   return output;
 }
