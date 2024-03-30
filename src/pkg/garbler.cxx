@@ -88,6 +88,55 @@ std::string GarblerClient::run(std::vector<int> input) {
 std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
                                                        GarbledLabels labels) {
   // TODO: implement me!
+  std::vector<GarbledGate> all_garbled_gates;
+
+  for (int current_gate_num = 0; current_gate_num < circuit.num_gate; current_gate_num++) {
+    Gate current_gate = circuit.gates.at(current_gate_num);
+
+    GarbledGate garbled_gate;
+    if (current_gate.type == GateType::AND_GATE) {
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.zeros.at(current_gate.lhs), labels.zeros.at(current_gate.rhs), labels.zeros.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.zeros.at(current_gate.lhs), labels.ones.at(current_gate.rhs), labels.zeros.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.ones.at(current_gate.lhs), labels.zeros.at(current_gate.rhs), labels.zeros.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.ones.at(current_gate.lhs), labels.ones.at(current_gate.rhs), labels.ones.at(current_gate.output))
+      );
+    } else if (current_gate.type == GateType::XOR_GATE) {
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.zeros.at(current_gate.lhs), labels.zeros.at(current_gate.rhs), labels.zeros.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.zeros.at(current_gate.lhs), labels.ones.at(current_gate.rhs), labels.ones.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.ones.at(current_gate.lhs), labels.zeros.at(current_gate.rhs), labels.ones.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.ones.at(current_gate.lhs), labels.ones.at(current_gate.rhs), labels.zeros.at(current_gate.output))
+      );
+    } else {
+      GarbledWire rhs_dummy;
+      rhs_dummy.value = DUMMY_RHS;
+
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.zeros.at(current_gate.lhs), rhs_dummy, labels.ones.at(current_gate.output))
+      );
+      garbled_gate.entries.push_back(
+      this->encrypt_label(labels.ones.at(current_gate.lhs), rhs_dummy, labels.zeros.at(current_gate.output))
+      );
+    }
+
+    std::random_shuffle(garbled_gate.entries.begin(), garbled_gate.entries.end());
+    all_garbled_gates.push_back(garbled_gate);
+  }
+
+  return all_garbled_gates;
 }
 
 /**
@@ -121,7 +170,7 @@ CryptoPP::SecByteBlock GarblerClient::encrypt_label(GarbledWire lhs,
                                                     GarbledWire output) {
   // TODO: implement me!
   SecByteBlock output_val = output.value;
-  output_val.CleanGrow(LABEL_TAG_LENGTH * 2);
+  output_val.CleanGrow(LABEL_LENGTH + LABEL_TAG_LENGTH);
 
   CryptoPP::SecByteBlock hash = this->crypto_driver->hash_inputs(lhs.value, rhs.value);
 
