@@ -96,6 +96,18 @@ std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
  */
 GarbledLabels GarblerClient::generate_labels(Circuit circuit) {
   // TODO: implement me!
+  GarbledLabels circuit_labels;
+  for (int i = 0; i < circuit.num_wire; i++) {
+    GarbledWire g0;
+    g0.value = this->generate_label();
+    circuit_labels.zeros.push_back(g0);
+
+    GarbledWire g1;
+    g1.value = this->generate_label();
+    circuit_labels.ones.push_back(g1);
+  }
+
+  return circuit_labels;
 }
 
 /**
