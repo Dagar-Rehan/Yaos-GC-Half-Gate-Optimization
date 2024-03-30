@@ -112,9 +112,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
   merged.resize(this->circuit.num_wire);
-  //for (int i = 0; i < garblers_inputs.size() + my_inputs_from_garbler.size(); i++) {
-
-  //}
 
   //CUSTOM_LOG(lg, debug) << "total wires - " + std::to_string(this->circuit.num_wire) << std::endl;
   CUSTOM_LOG(lg, debug) << "garbler_input_length - " + std::to_string(this->circuit.garbler_input_length) << std::endl;
@@ -131,13 +128,13 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       GarbledWire lhs = merged.at(current_gate.lhs);
       GarbledWire rhs = merged.at(current_gate.rhs);
       GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-      merged.insert(merged.begin() + current_gate.output, output);
+      merged[current_gate.output] = output;
     } else {
       GarbledWire lhs = merged.at(current_gate.lhs);
       GarbledWire rhs;
       rhs.value = DUMMY_RHS;
       GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-      merged.insert(merged.begin() + current_gate.output, output);
+      merged[current_gate.output] = output;
     }
   }
 
@@ -188,7 +185,7 @@ GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
     }
   }
 
-    CUSTOM_LOG(lg, debug) << "In side of EvaluatorClient::evaluate_gate at the very end!!!" << std::endl;
+  //CUSTOM_LOG(lg, debug) << "In side of EvaluatorClient::evaluate_gate at the very end!!!" << std::endl;
 
   return output;
 }
