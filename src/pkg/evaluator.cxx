@@ -116,6 +116,8 @@ std::string EvaluatorClient::run(std::vector<int> input) {
     << ", circuit.gates.size() - " + std::to_string(this->circuit.gates.size())
     << std::endl;
 
+  CUSTOM_LOG(lg, debug) << "total wires - " + std::to_string(this->circuit.num_wire) << std::endl;
+
   for (int i = 0; i < garbled_circuit.size(); i++) {
     GarbledGate current_gate_garbled = garbled_circuit.at(i);
     Gate current_gate = this->circuit.gates.at(i);
