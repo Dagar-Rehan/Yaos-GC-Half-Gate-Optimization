@@ -121,7 +121,16 @@ std::string GarblerClient::run(std::vector<int> input) {
   std::string output_string = "";
   for (int i = 0; i < output_labels_msg.final_labels.size(); i++) {
     GarbledWire current_label = output_labels_msg.final_labels.at(i);
-    if (std::find(all_labels.zeros.begin(), all_labels.zeros.end(), current_label) != all_labels.zeros.end()) {
+
+    bool is_zero = false;
+    for (int j = 0; j < all_labels.zeros.size(); j++) {
+      if (all_labels.zeros.at(j).value == current_label.value) {
+        is_zero = true;
+        break;
+      }
+    }
+
+    if (is_zero) {
       output_string = output_string + "0";
     } else {
       output_string = output_string + "1";
