@@ -88,6 +88,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
 GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
                                            GarbledWire rhs) {
   // TODO: implement me!
+  throw std::runtime_error("In EvaluatorClient::evaluate_gate!!! Testing!!!!");
 }
 
 /**
