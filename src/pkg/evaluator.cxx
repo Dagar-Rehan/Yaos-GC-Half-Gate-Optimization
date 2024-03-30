@@ -188,6 +188,8 @@ GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
     }
   }
 
+    CUSTOM_LOG(lg, debug) << "In side of EvaluatorClient::evaluate_gate at the very end!!!" << std::endl;
+
   return output;
 }
 
