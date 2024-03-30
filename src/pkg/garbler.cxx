@@ -79,7 +79,61 @@ std::string GarblerClient::run(std::vector<int> input) {
   auto keys = this->HandleKeyExchange();
 
   // TODO: implement me!
-  throw std::runtime_error("GarblerClient::run - Testing!!!");
+  std::pair<std::vector<unsigned char>, bool> intermediate;
+
+  //generate the garbled circuit and the garbled tags
+  GarbledLabels all_labels = this->generate_labels(this->circuit);
+  std::vector<GarbledGate> garbled_circuit = this->generate_gates(this->circuit, all_labels);
+
+  //send garbled table
+  GarblerToEvaluator_GarbledTables_Message gc_msg;
+  gc_msg.garbled_tables = garbled_circuit;
+  this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &gc_msg));
+
+  //get the input labels for the garbler
+  std::vector<GarbledWire> garbler_inputs;
+  for (int i = 0; i < input.size(); i++) {
+    if (input.at(i) == 0) {
+      garbler_inputs.push_back(all_labels.zeros.at(i));
+    } else {
+      garbler_inputs.push_back(all_labels.ones.at(i));
+    }
+  }
+
+  //send garblers input labels over
+  GarblerToEvaluator_GarblerInputs_Message garbler_inputs_msg;
+  garbler_inputs_msg.garbler_inputs = garbler_inputs;
+  this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &garbler_inputs_msg));
+
+  //send evaulators input labels
+  for (int i = 0; i < this->circuit.evaluator_input_length; i++) {
+    this->ot_driver->OT_send(byteblock_to_string(all_labels.zeros.at(this->circuit.garbler_input_length + i).value), byteblock_to_string(all_labels.ones.at(this->circuit.garbler_input_length + i).value));
+  }
+
+  //get the output labels from the evaulator
+  intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
+  if (std::get<1>(intermediate) == false) {
+    throw std::runtime_error("GarblerClient::run - HMAC failed for final output labels.");
+  }
+  EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
+  output_labels_msg.deserialize(std::get<0>(intermediate));
+
+  std::string output_string = "";
+  for (int i = 0; i < output_labels_msg.final_labels.size(); i++) {
+    GarbledWire current_label = output_labels_msg.final_labels.at(i);
+    if (std::find(all_labels.zeros.begin(), all_labels.zeros.end(), current_label) != all_labels.zeros.end()) {
+      output_string = output_string + "0";
+    } else {
+      output_string = output_string + "1";
+    }
+  }
+
+  //send final output to evaulator
+  GarblerToEvaluator_FinalOutput_Message final_output_msg;
+  final_output_msg.final_output = output_string;
+    this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &final_output_msg));
+
+  return output_string;
 }
 
 /**
