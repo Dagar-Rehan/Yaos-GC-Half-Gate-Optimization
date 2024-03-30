@@ -88,7 +88,23 @@ std::string EvaluatorClient::run(std::vector<int> input) {
 GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
                                            GarbledWire rhs) {
   // TODO: implement me!
-  throw std::runtime_error("In EvaluatorClient::evaluate_gate!!! Testing!!!!");
+  GarbledWire output;
+
+  for (int i = 0; i < gate.entries.size(); i++) {
+    CryptoPP::SecByteBlock cipher = gate.entries.at(i);
+
+    CryptoPP::SecByteBlock hash = this->crypto_driver->hash_inputs(lhs.value, rhs.value);
+
+    CryptoPP::xorbuf(cipher, hash, cipher.size());
+
+    if (verify_decryption(cipher)) {
+      output.value = snip_decryption(cipher);
+      return output;
+    }
+  }
+
+  throw std::runtime_error("EvaluatorClient::evaluate_gate - None of them decrypted properly.");
+  return output;
 }
 
 /**
