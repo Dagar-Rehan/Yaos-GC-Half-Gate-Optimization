@@ -107,11 +107,11 @@ std::string EvaluatorClient::run(std::vector<int> input) {
     wire.value = string_to_byteblock(this->ot_driver->OT_recv(input.at(i)));
     my_inputs_from_garbler.push_back(wire);
   }
-  throw std::runtime_error("Before Merged Test - merged");
+  
   //evaulate the circuit
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
-   
+  CUSTOM_LOG(lg, debug) << "After merged was made!" << std::endl;
   for (int i = 0; i < garbled_circuit.size(); i++) {
     GarbledGate current_gate_garbled = garbled_circuit.at(i);
     Gate current_gate = this->circuit.gates.at(i);
@@ -129,7 +129,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       merged.push_back(output);
     }
   }
-
+  throw std::runtime_error("After gate evaluation!");
   //get the output labels
   std::vector<GarbledWire> output_labels;
   for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
