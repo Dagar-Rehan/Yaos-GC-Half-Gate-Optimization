@@ -103,7 +103,7 @@ GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
     }
   }
 
-  throw std::runtime_error("EvaluatorClient::evaluate_gate - None of them decrypted properly.");
+  //throw std::runtime_error("EvaluatorClient::evaluate_gate - None of them decrypted properly.");
   return output;
 }
 
