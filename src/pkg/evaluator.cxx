@@ -124,11 +124,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
     Gate current_gate = this->circuit.gates.at(i);
 
     if (current_gate.type == GateType::AND_GATE || current_gate.type == GateType::XOR_GATE) {
-      CUSTOM_LOG(lg, debug) << "merged.size() - " + std::to_string(merged.size()) << std::endl;
-
-      CUSTOM_LOG(lg, debug) << "lhs - " + std::to_string(current_gate.lhs) 
-      << ", rhs - " << std::to_string(current_gate.rhs) << std::endl;
-
       GarbledWire lhs = merged.at(current_gate.lhs);
       GarbledWire rhs = merged.at(current_gate.rhs);
       GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
@@ -147,6 +142,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
     output_labels.push_back(merged.at(i));
   }
+    CUSTOM_LOG(lg, debug) << "output_labels.size() - " + std::to_string(output_labels.size()) << std::endl;
 
   //send output labels back to evaulator
   EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
