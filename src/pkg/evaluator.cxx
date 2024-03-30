@@ -111,7 +111,8 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   //evaulate the circuit
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
-  
+  merged.resize(this->circuit.num_wire);
+
   CUSTOM_LOG(lg, debug) << "garbled_circuit.size() - " + std::to_string(garbled_circuit.size()) 
     << ", circuit.gates.size() - " + std::to_string(this->circuit.gates.size())
     << std::endl;
@@ -131,13 +132,13 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       GarbledWire lhs = merged.at(current_gate.lhs);
       GarbledWire rhs = merged.at(current_gate.rhs);
       GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-      merged.push_back(output);
+      merged.insert(merged.begin() + current_gate.output, output);
     } else {
       GarbledWire lhs = merged.at(current_gate.lhs);
       GarbledWire rhs;
       rhs.value = DUMMY_RHS;
       GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-      merged.push_back(output);
+      merged.insert(merged.begin() + current_gate.output, output);
     }
   }
   throw std::runtime_error("After gate evaluation!");
