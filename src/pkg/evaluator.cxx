@@ -111,12 +111,21 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   //evaulate the circuit
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
-  CUSTOM_LOG(lg, debug) << "After merged was made!" << std::endl;
+  
+  CUSTOM_LOG(lg, debug) << "garbled_circuit.size() - " + std::to_string(garbled_circuit.size()) 
+    << ", circuit.gates.size() - " + std::to_string(this->circuit.gates.size())
+    << std::endl;
+
   for (int i = 0; i < garbled_circuit.size(); i++) {
     GarbledGate current_gate_garbled = garbled_circuit.at(i);
     Gate current_gate = this->circuit.gates.at(i);
 
     if (current_gate.type == GateType::AND_GATE || current_gate.type == GateType::XOR_GATE) {
+      CUSTOM_LOG(lg, debug) << "merged.size() - " + std::to_string(merged.size()) << std::endl;
+
+      CUSTOM_LOG(lg, debug) << "lhs - " + std::to_string(current_gate.lhs) 
+      << ", rhs - " << std::to_string(current_gate.rhs) << std::endl;
+
       GarbledWire lhs = merged.at(current_gate.lhs);
       GarbledWire rhs = merged.at(current_gate.rhs);
       GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
