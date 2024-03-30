@@ -141,7 +141,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       merged.insert(merged.begin() + current_gate.output, output);
     }
   }
-  throw std::runtime_error("After gate evaluation!");
+
   //get the output labels
   std::vector<GarbledWire> output_labels;
   for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
@@ -160,8 +160,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   }
   GarblerToEvaluator_FinalOutput_Message final_output_msg;
   final_output_msg.deserialize(std::get<0>(intermediate));
-
-  throw std::runtime_error(final_output_msg.final_output);
 
   return final_output_msg.final_output;
 }
