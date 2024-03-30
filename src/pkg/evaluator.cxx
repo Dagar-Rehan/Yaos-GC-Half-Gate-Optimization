@@ -132,9 +132,9 @@ std::string EvaluatorClient::run(std::vector<int> input) {
 
   //get the output labels
   std::vector<GarbledWire> output_labels;
-  for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
-    output_labels.push_back(merged.at(i));
-  }
+  //for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
+    //output_labels.push_back(merged.at(i));
+  //}
 
   //send output labels back to evaulator
   EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
