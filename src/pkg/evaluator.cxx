@@ -77,6 +77,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   auto keys = this->HandleKeyExchange();
 
   // TODO: implement me!
+  throw std::runtime_error("EvaluatorClient::run - Testing!!!");
 }
 
 /**
@@ -103,7 +104,6 @@ GarbledWire EvaluatorClient::evaluate_gate(GarbledGate gate, GarbledWire lhs,
     }
   }
 
-  //throw std::runtime_error("EvaluatorClient::evaluate_gate - None of them decrypted properly.");
   return output;
 }
 

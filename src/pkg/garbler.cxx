@@ -79,6 +79,7 @@ std::string GarblerClient::run(std::vector<int> input) {
   auto keys = this->HandleKeyExchange();
 
   // TODO: implement me!
+  throw std::runtime_error("GarblerClient::run - Testing!!!");
 }
 
 /**
