@@ -12,11 +12,11 @@ public:
                 std::shared_ptr<CryptoDriver> crypto_driver);
   std::pair<CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> HandleKeyExchange();
   std::string run(std::vector<int> input);
-  GarbledLabels generate_labels(Circuit circuit);
+  GarbledLabels generate_labels_input_wires(Circuit circuit, SecByteBlock R);
   std::vector<GarbledGate> generate_gates(Circuit circuit,
-                                          GarbledLabels labels);
-  CryptoPP::SecByteBlock encrypt_label(GarbledWire lhs, GarbledWire rhs,
-                                       GarbledWire output);
+                                          GarbledLabels &labels, SecByteBlock R);
+  std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> GbAnd(GarbledWire lhs_0, GarbledWire lhs_1, GarbledWire rhs_0, GarbledWire rhs_1,
+                                       SecByteBlock R);
   CryptoPP::SecByteBlock generate_label();
   std::vector<GarbledWire> get_garbled_wires(GarbledLabels labels,
                                              std::vector<int> input, int begin);
