@@ -155,9 +155,20 @@ std::string GarblerClient::run(std::vector<int> input) {
     CryptoPP::xorbuf(R, one, one.size());
   }
 
+  //send dummy rhs XOR value for NOT gates
+  GarbledWire dummy_rhs_xor_not_zero_label;
+  GarbledWire dummy_rhs_xor_not_one_label;
+  dummy_rhs_xor_not_zero_label.value = generate_label();
+  dummy_rhs_xor_not_one_label.value = dummy_rhs_xor_not_zero_label.value; 
+  CryptoPP:xorbuf(dummy_rhs_xor_not_one_label.value, R, R.size());
+  GarblerToEvaluator_GarblerInputs_Message dummy_xor_not_msg;
+  dummy_xor_not_msg.garbler_inputs.push_back(dummy_rhs_xor_not_one_label);
+  this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &dummy_xor_not_msg));
+
+
   //generate the garbled circuit and the garbled tags
   GarbledLabels input_labels = this->generate_labels_input_wires(this->circuit, R);
-  std::vector<GarbledGate> garbled_circuit = this->generate_gates(this->circuit, input_labels, R);
+  std::vector<GarbledGate> garbled_circuit = this->generate_gates(this->circuit, input_labels, R, dummy_rhs_xor_not_zero_label);
 
   //send garbled table
   GarblerToEvaluator_GarbledTables_Message gc_msg;
@@ -236,7 +247,7 @@ std::string GarblerClient::run(std::vector<int> input) {
  * You may find `std::random_shuffle` useful
  */
 std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
-                                                       GarbledLabels &labels, SecByteBlock R) {
+                                                       GarbledLabels &labels, SecByteBlock R, GarbledWire dummy_rhs_xor_not) {
   // TODO: implement me!
   std::vector<GarbledGate> all_garbled_gates;
 
@@ -246,19 +257,19 @@ std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
 
     GarbledGate garbled_gate;
     if (current_gate.type == GateType::AND_GATE) {
-      CUSTOM_LOG(lg, debug) << "Garbler - In AND Gate" << std::endl;
+      //CUSTOM_LOG(lg, debug) << "Garbler - In AND Gate" << std::endl;
       std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> W0_Tg_Te = this->GbAnd(labels.zeros.at(current_gate.lhs), labels.ones.at(current_gate.lhs), labels.zeros.at(current_gate.rhs), labels.ones.at(current_gate.rhs), R);
       new_zero_label = std::get<0>(W0_Tg_Te);
       garbled_gate.entries.push_back(std::get<1>(W0_Tg_Te));
       garbled_gate.entries.push_back(std::get<2>(W0_Tg_Te));
 
     } else if (current_gate.type == GateType::XOR_GATE) {
-      CUSTOM_LOG(lg, debug) << "Garbler - In XOR Gate" << std::endl;
+      //CUSTOM_LOG(lg, debug) << "Garbler - In XOR Gate" << std::endl;
       new_zero_label.value = labels.zeros.at(current_gate.lhs).value;
       CryptoPP::xorbuf(new_zero_label.value, labels.zeros.at(current_gate.rhs).value, new_zero_label.value.size());
       
     } else {
-      CUSTOM_LOG(lg, debug) << "Garbler - In NOT Gate" << std::endl;
+      //CUSTOM_LOG(lg, debug) << "Garbler - In NOT Gate" << std::endl;
       // GarbledWire rhs_dummy;
       // rhs_dummy.value = DUMMY_RHS;
 
@@ -268,6 +279,8 @@ std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
       // garbled_gate.entries.push_back(
       // this->encrypt_label(labels.ones.at(current_gate.lhs), rhs_dummy, labels.zeros.at(current_gate.output))
       // );
+      new_zero_label.value = labels.zeros.at(current_gate.lhs).value;
+      CryptoPP::xorbuf(new_zero_label.value, dummy_rhs_xor_not.value, new_zero_label.value.size());
     }
 
     //std::random_shuffle(garbled_gate.entries.begin(), garbled_gate.entries.end());
