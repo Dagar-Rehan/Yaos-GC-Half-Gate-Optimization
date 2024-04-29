@@ -135,7 +135,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
     output_labels.push_back(merged.at(i));
   }
-  CUSTOM_LOG(lg, debug) << "output_labels.size() - " + std::to_string(output_labels.size()) << std::endl;
 
   //send output labels back to evaulator
   EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
@@ -149,6 +148,8 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   }
   GarblerToEvaluator_FinalOutput_Message final_output_msg;
   final_output_msg.deserialize(std::get<0>(intermediate));
+
+  std::cout << final_output_msg.final_output << std::endl; 
 
   return final_output_msg.final_output;
 }
