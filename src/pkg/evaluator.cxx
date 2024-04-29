@@ -74,88 +74,118 @@ EvaluatorClient::HandleKeyExchange() {
  */
 std::string EvaluatorClient::run(std::vector<int> input) {
   // Key exchange
-  // auto keys = this->HandleKeyExchange();
+  auto keys = this->HandleKeyExchange();
 
-  // // TODO: implement me!
-  // std::pair<std::vector<unsigned char>, bool> intermediate;
+  // TODO: implement me!
+  std::pair<std::vector<unsigned char>, bool> intermediate;
 
-  // //get the garbled circuit
-  // intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
-  // if (std::get<1>(intermediate) == false) {
-  //   throw std::runtime_error("EvaluatorClient::run - HMAC failed for garbled circuit.");
-  // }
-  // GarblerToEvaluator_GarbledTables_Message garbled_circuit_msg;
-  // garbled_circuit_msg.deserialize(std::get<0>(intermediate));
+  //get the garbled circuit
+  intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
+  if (std::get<1>(intermediate) == false) {
+    throw std::runtime_error("EvaluatorClient::run - HMAC failed for garbled circuit.");
+  }
+  GarblerToEvaluator_GarbledTables_Message garbled_circuit_msg;
+  garbled_circuit_msg.deserialize(std::get<0>(intermediate));
 
-  // //get garbled inputs
-  // intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
-  // if (std::get<1>(intermediate) == false) {
-  //   throw std::runtime_error("EvaluatorClient::run - HMAC failed for garbled inputs from garbler.");
-  // }
-  // GarblerToEvaluator_GarblerInputs_Message garbled_inputs_msg;
-  // garbled_inputs_msg.deserialize(std::get<0>(intermediate));
+  //get garbled inputs
+  intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
+  if (std::get<1>(intermediate) == false) {
+    throw std::runtime_error("EvaluatorClient::run - HMAC failed for garbled inputs from garbler.");
+  }
+  GarblerToEvaluator_GarblerInputs_Message garbled_inputs_msg;
+  garbled_inputs_msg.deserialize(std::get<0>(intermediate));
 
-  // //set the gate and inputs from the garbler to their own variables
-  // std::vector<GarbledGate> garbled_circuit = garbled_circuit_msg.garbled_tables;
-  // std::vector<GarbledWire> garblers_inputs = garbled_inputs_msg.garbler_inputs;
+  //set the gate and inputs from the garbler to their own variables
+  std::vector<GarbledGate> garbled_circuit = garbled_circuit_msg.garbled_tables;
+  std::vector<GarbledWire> garblers_inputs = garbled_inputs_msg.garbler_inputs;
 
-  // //use OT to get our garbled input labels
-  // std::vector<GarbledWire> my_inputs_from_garbler;
-  // for (int i = 0; i < input.size(); i++) {
-  //   GarbledWire wire;
-  //   wire.value = string_to_byteblock(this->ot_driver->OT_recv(input.at(i)));
-  //   my_inputs_from_garbler.push_back(wire);
-  // }
+  //use OT to get our garbled input labels
+  std::vector<GarbledWire> my_inputs_from_garbler;
+  for (int i = 0; i < input.size(); i++) {
+    GarbledWire wire;
+    wire.value = string_to_byteblock(this->ot_driver->OT_recv(input.at(i)));
+    my_inputs_from_garbler.push_back(wire);
+  }
   
-  // //evaulate the circuit
-  // std::vector<GarbledWire> merged(garblers_inputs);
-  // merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
-  // merged.resize(this->circuit.num_wire);
+  //evaulate the circuit
+  std::vector<GarbledWire> merged(garblers_inputs);
+  merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
+  merged.resize(this->circuit.num_wire);
 
-  // for (int i = 0; i < garbled_circuit.size(); i++) {
-  //   GarbledGate current_gate_garbled = garbled_circuit.at(i);
-  //   Gate current_gate = this->circuit.gates.at(i);
+  for (int i = 0; i < garbled_circuit.size(); i++) {
+    GarbledGate current_gate_garbled = garbled_circuit.at(i);
+    Gate current_gate = this->circuit.gates.at(i);
 
-  //   if (current_gate.type == GateType::AND_GATE || current_gate.type == GateType::XOR_GATE) {
-  //     GarbledWire lhs = merged.at(current_gate.lhs);
-  //     GarbledWire rhs = merged.at(current_gate.rhs);
-  //     GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-  //     merged[current_gate.output] = output;
-  //   } else {
-  //     GarbledWire lhs = merged.at(current_gate.lhs);
-  //     GarbledWire rhs;
-  //     rhs.value = DUMMY_RHS;
-  //     GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-  //     merged[current_gate.output] = output;
-  //   }
-  // }
+    if (current_gate.type == GateType::AND_GATE) {
+      // GarbledWire lhs = merged.at(current_gate.lhs);
+      // GarbledWire rhs = merged.at(current_gate.rhs);
+      // GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
+      // merged[current_gate.output] = output;
+      CUSTOM_LOG(lg, debug) << "Evaluator - In AND Gate" << std::endl;
 
-  // //get the output labels
-  // std::vector<GarbledWire> output_labels;
-  // for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
-  //   output_labels.push_back(merged.at(i));
-  // }
 
-  // //send output labels back to evaulator
-  // EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
-  // output_labels_msg.final_labels = output_labels;
-  // this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &output_labels_msg));
+      bool lsb_lhs = byteblock_to_integer(merged.at(current_gate.lhs).value).GetBit(0);
+      bool lsb_rhs = byteblock_to_integer(merged.at(current_gate.rhs).value).GetBit(0);
 
-  // //get back result
-  // intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
-  // if (std::get<1>(intermediate) == false) {
-  //   throw std::runtime_error("EvaluatorClient::run - HMAC failed for output from garbler.");
-  // }
-  // GarblerToEvaluator_FinalOutput_Message final_output_msg;
-  // final_output_msg.deserialize(std::get<0>(intermediate));
+      SecByteBlock Tg = current_gate_garbled.entries.at(0);
+      SecByteBlock Te = current_gate_garbled.entries.at(1);
 
-  // std::cout << final_output_msg.final_output << std::endl; 
+      SecByteBlock padding(integer_to_byteblock(Integer::Zero()));
+      padding.CleanGrow(merged.at(current_gate.lhs).value.size());
 
-  // return final_output_msg.final_output;
+      SecByteBlock Wg = this->crypto_driver->hash_inputs(merged.at(current_gate.lhs).value, padding);
+      SecByteBlock We = this->crypto_driver->hash_inputs(merged.at(current_gate.rhs).value, padding);
 
-  // ################################################## NEW #########################
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000000));
-  return "";
+      if (lsb_lhs) {
+        CryptoPP::xorbuf(Wg, Tg, Wg.size());
+      }
+      if (lsb_rhs) {
+        CryptoPP::xorbuf(Te, merged.at(current_gate.lhs).value, Te.size());
+        CryptoPP::xorbuf(We, Te, We.size());
+      }
+
+      GarbledWire w;
+      w.value = Wg;
+      CryptoPP:xorbuf(w.value, We, w.value.size());
+      merged[current_gate.output] = w;
+
+    } else if (current_gate.type == GateType::XOR_GATE) {
+      CUSTOM_LOG(lg, debug) << "Evaluator - In XOR Gate" << std::endl;
+      GarbledWire w = merged.at(current_gate.lhs);
+      CryptoPP::xorbuf(w.value, merged.at(current_gate.rhs).value, w.value.size());
+      merged[current_gate.output] = w;
+    } else {
+      CUSTOM_LOG(lg, debug) << "Evaluator - In NOT Gate" << std::endl;
+      // GarbledWire lhs = merged.at(current_gate.lhs);
+      // GarbledWire rhs;
+      // rhs.value = DUMMY_RHS;
+      // GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
+      // merged[current_gate.output] = output;
+    }
+  }
+
+  //get the output labels
+  std::vector<GarbledWire> output_labels;
+  for (int i = (this->circuit.num_wire - this->circuit.output_length); i < this->circuit.num_wire; i++) {
+    output_labels.push_back(merged.at(i));
+  }
+
+  //send output labels back to evaulator
+  EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
+  output_labels_msg.final_labels = output_labels;
+  this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &output_labels_msg));
+
+  //get back result
+  intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
+  if (std::get<1>(intermediate) == false) {
+    throw std::runtime_error("EvaluatorClient::run - HMAC failed for output from garbler.");
+  }
+  GarblerToEvaluator_FinalOutput_Message final_output_msg;
+  final_output_msg.deserialize(std::get<0>(intermediate));
+
+  std::cout << final_output_msg.final_output << std::endl; 
+
+  return final_output_msg.final_output;
 }
 
 /**

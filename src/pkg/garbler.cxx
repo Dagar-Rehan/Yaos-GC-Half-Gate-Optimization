@@ -76,7 +76,7 @@ GarblerClient::HandleKeyExchange() {
  */
 std::string GarblerClient::run(std::vector<int> input) {
   // Key exchange
-  // auto keys = this->HandleKeyExchange();
+  auto keys = this->HandleKeyExchange();
 
   // TODO: implement me!
   std::pair<std::vector<unsigned char>, bool> intermediate;
@@ -159,11 +159,76 @@ std::string GarblerClient::run(std::vector<int> input) {
   GarbledLabels input_labels = this->generate_labels_input_wires(this->circuit, R);
   std::vector<GarbledGate> garbled_circuit = this->generate_gates(this->circuit, input_labels, R);
 
+  //send garbled table
+  GarblerToEvaluator_GarbledTables_Message gc_msg;
+  gc_msg.garbled_tables = garbled_circuit;
+  this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &gc_msg));
 
-  CUSTOM_LOG(lg, debug) << "Generated Circuit properly" << std::endl;
-  throw std::runtime_error("Generated Circuit properly");
+  //get the input labels for the garbler
+  std::vector<GarbledWire> garbler_inputs;
+  for (int i = 0; i < input.size(); i++) {
+    if (input.at(i) == 0) {
+      garbler_inputs.push_back(input_labels.zeros.at(i));
+    } else {
+      garbler_inputs.push_back(input_labels.ones.at(i));
+    }
+  }
 
-  return "";
+  //send garblers input labels over
+  GarblerToEvaluator_GarblerInputs_Message garbler_inputs_msg;
+  garbler_inputs_msg.garbler_inputs = garbler_inputs;
+  this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &garbler_inputs_msg));
+
+  //send evaulators input labels
+  for (int i = 0; i < this->circuit.evaluator_input_length; i++) {
+    this->ot_driver->OT_send(byteblock_to_string(input_labels.zeros.at(this->circuit.garbler_input_length + i).value), byteblock_to_string(input_labels.ones.at(this->circuit.garbler_input_length + i).value));
+  }
+
+  //get the output labels from the evaulator
+  intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
+  if (std::get<1>(intermediate) == false) {
+    throw std::runtime_error("GarblerClient::run - HMAC failed for final output labels.");
+  }
+  EvaluatorToGarbler_FinalLabels_Message output_labels_msg;
+  output_labels_msg.deserialize(std::get<0>(intermediate));
+
+  //LOGING
+  // for (int i = 0; i < input_labels.zeros.size(); i++) {
+  //   CUSTOM_LOG(lg, debug) << "Garbler_input_labels.at " << i << " - (" << byteblock_to_integer(input_labels.zeros.at(i).value) << ", " << byteblock_to_integer(input_labels.ones.at(i).value) << ")" << std::endl;
+  // }
+  // for (int i = 0; i < output_labels_msg.final_labels.size(); i++) {
+  //   CUSTOM_LOG(lg, debug) << "Garbler_input_labels.at " << i << " - (" << byteblock_to_integer(output_labels_msg.final_labels.at(i).value) << ", " << byteblock_to_integer(output_labels_msg.final_labels.at(i).value) << ")" << std::endl;
+  // }
+
+  std::string output_string = "";
+  for (int i = 0; i < output_labels_msg.final_labels.size(); i++) {
+    GarbledWire current_label = output_labels_msg.final_labels.at(i);
+
+    bool is_zero = false;
+    //for (int j = 0; j < input_labels.zeros.size(); j++) {
+    bool lsb_1 = byteblock_to_integer(input_labels.zeros.at(circuit.num_wire - circuit.output_length + i).value).GetBit(0);
+    bool lsb_2 = byteblock_to_integer(current_label.value).GetBit(0);
+    output_string = output_string + std::to_string(lsb_1 ^ lsb_2);
+
+      // if (input_labels.zeros.at(j).value == current_label.value) {
+      //   is_zero = true;
+      //   break;
+      // }
+    //}
+
+    // if (is_zero) {
+    //   output_string = output_string + "0";
+    // } else {
+    //   output_string = output_string + "1";
+    // }
+  }
+
+  //send final output to evaulator
+  GarblerToEvaluator_FinalOutput_Message final_output_msg;
+  final_output_msg.final_output = output_string;
+    this->network_driver->send(this->crypto_driver->encrypt_and_tag(std::get<0>(keys), std::get<1>(keys), &final_output_msg));
+
+  return output_string;
 }
 
 /**
@@ -174,24 +239,26 @@ std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
                                                        GarbledLabels &labels, SecByteBlock R) {
   // TODO: implement me!
   std::vector<GarbledGate> all_garbled_gates;
-  CUSTOM_LOG(lg, debug) << "In generate_gates" << std::endl;
+
   for (int current_gate_num = 0; current_gate_num < circuit.num_gate; current_gate_num++) {
     Gate current_gate = circuit.gates.at(current_gate_num);
     GarbledWire new_zero_label;
 
     GarbledGate garbled_gate;
     if (current_gate.type == GateType::AND_GATE) {
-      CUSTOM_LOG(lg, debug) << "Begin AND Gate" << std::endl;
+      CUSTOM_LOG(lg, debug) << "Garbler - In AND Gate" << std::endl;
       std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> W0_Tg_Te = this->GbAnd(labels.zeros.at(current_gate.lhs), labels.ones.at(current_gate.lhs), labels.zeros.at(current_gate.rhs), labels.ones.at(current_gate.rhs), R);
-      GarbledWire new_zero_label = std::get<0>(W0_Tg_Te);
+      new_zero_label = std::get<0>(W0_Tg_Te);
       garbled_gate.entries.push_back(std::get<1>(W0_Tg_Te));
       garbled_gate.entries.push_back(std::get<2>(W0_Tg_Te));
-      CUSTOM_LOG(lg, debug) << "End AND Gate" << std::endl;
+
     } else if (current_gate.type == GateType::XOR_GATE) {
+      CUSTOM_LOG(lg, debug) << "Garbler - In XOR Gate" << std::endl;
       new_zero_label.value = labels.zeros.at(current_gate.lhs).value;
       CryptoPP::xorbuf(new_zero_label.value, labels.zeros.at(current_gate.rhs).value, new_zero_label.value.size());
-    
+      
     } else {
+      CUSTOM_LOG(lg, debug) << "Garbler - In NOT Gate" << std::endl;
       // GarbledWire rhs_dummy;
       // rhs_dummy.value = DUMMY_RHS;
 
@@ -204,13 +271,11 @@ std::vector<GarbledGate> GarblerClient::generate_gates(Circuit circuit,
     }
 
     //std::random_shuffle(garbled_gate.entries.begin(), garbled_gate.entries.end());
-    CUSTOM_LOG(lg, debug) << "Begin W1 label" << std::endl;
     GarbledWire new_one_label = new_zero_label;
     CryptoPP::xorbuf(new_one_label.value, R, new_one_label.value.size());
     labels.zeros.at(current_gate.output) = new_zero_label;
     labels.ones.at(current_gate.output) = new_one_label;
     all_garbled_gates.push_back(garbled_gate);
-    CUSTOM_LOG(lg, debug) << "End W1 label" << std::endl;
   }
 
   return all_garbled_gates;
@@ -252,14 +317,12 @@ std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> GarblerC
   // TODO: implement me!
   bool permbit_lhs = byteblock_to_integer(lhs_0.value).GetBit(0);
   bool permbit_rhs = byteblock_to_integer(rhs_0.value).GetBit(0);
-  // CUSTOM_LOG(lg, debug) << "1 - GbAnd" << std::endl;
-  // CUSTOM_LOG(lg, debug) << "lhs_0.value Size - " << lhs_0.value.size() << std::endl;
-  // CUSTOM_LOG(lg, debug) << "lhs_1.value Size - " << lhs_1.value.size() << std::endl;
-  // CUSTOM_LOG(lg, debug) << "rhs_0.value Size - " << rhs_0.value.size() << std::endl;
-  // CUSTOM_LOG(lg, debug) << "rhs_1.value Size - " << rhs_1.value.size() << std::endl;
 
   SecByteBlock padding(integer_to_byteblock(Integer::Zero()));
   padding.CleanGrow(lhs_0.value.size());
+
+  // CUSTOM_LOG(lg, debug) << "Padding Size - " << padding.size() << std::endl;
+  // CUSTOM_LOG(lg, debug) << "Padding Val - " << byteblock_to_integer(padding) << std::endl;
 
   //first half gate
   SecByteBlock Tg = this->crypto_driver->hash_inputs(lhs_0.value, padding);
