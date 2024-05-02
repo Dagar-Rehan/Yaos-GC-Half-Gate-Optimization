@@ -79,15 +79,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   // TODO: implement me!
   std::pair<std::vector<unsigned char>, bool> intermediate;
 
-  //get dummy XOR rhs value for NOT gates
-  intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
-  if (std::get<1>(intermediate) == false) {
-    throw std::runtime_error("EvaluatorClient::run - HMAC failed for dummy XOR_NOT label.");
-  }
-  GarblerToEvaluator_GarblerInputs_Message dummy_xor_not_msg;
-  dummy_xor_not_msg.deserialize(std::get<0>(intermediate));
-  GarbledWire dummy_rhs_xor_not_label = dummy_xor_not_msg.garbler_inputs.at(0);
-
   //get the garbled circuit
   intermediate = this->crypto_driver->decrypt_and_verify(std::get<0>(keys), std::get<1>(keys), this->network_driver->read());
   if (std::get<1>(intermediate) == false) {
@@ -165,14 +156,21 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       merged[current_gate.output] = w;
 
     } else {
-      //CUSTOM_LOG(lg, debug) << "Evaluator - In NOT Gate" << std::endl;
-      // GarbledWire lhs = merged.at(current_gate.lhs);
-      // GarbledWire rhs;
-      // rhs.value = DUMMY_RHS;
-      // GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-      // merged[current_gate.output] = output;
-      GarbledWire w = merged.at(current_gate.lhs);
-      CryptoPP::xorbuf(w.value, dummy_rhs_xor_not_label.value, w.value.size());
+      GarbledWire rhs;
+      rhs.value = DUMMY_RHS;
+
+      GarbledWire lhs = merged.at(current_gate.lhs);
+      bool permbit = byteblock_to_integer(lhs.value).GetBit(0);
+
+      GarbledWire w;
+      w.value = this->crypto_driver->hash_inputs(lhs.value, rhs.value);
+
+      if (permbit == 0) {
+        CryptoPP::xorbuf(w.value, current_gate_garbled.entries.at(0), w.value.size());
+      } else {
+        CryptoPP::xorbuf(w.value, current_gate_garbled.entries.at(1), w.value.size());
+      }
+
       merged[current_gate.output] = w;
     }
   }

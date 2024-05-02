@@ -14,7 +14,7 @@ public:
   std::string run(std::vector<int> input);
   GarbledLabels generate_labels_input_wires(Circuit circuit, SecByteBlock R);
   std::vector<GarbledGate> generate_gates(Circuit circuit,
-                                          GarbledLabels &labels, SecByteBlock R, GarbledWire dummy_rhs_xor_not);
+                                          GarbledLabels &labels, SecByteBlock R);
   std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> GbAnd(GarbledWire lhs_0, GarbledWire lhs_1, GarbledWire rhs_0, GarbledWire rhs_1,
                                        SecByteBlock R);
   CryptoPP::SecByteBlock generate_label();
