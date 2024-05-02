@@ -117,13 +117,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
     Gate current_gate = this->circuit.gates.at(i);
 
     if (current_gate.type == GateType::AND_GATE) {
-      // GarbledWire lhs = merged.at(current_gate.lhs);
-      // GarbledWire rhs = merged.at(current_gate.rhs);
-      // GarbledWire output = evaluate_gate(current_gate_garbled, lhs, rhs); 
-      // merged[current_gate.output] = output;
-      //CUSTOM_LOG(lg, debug) << "Evaluator - In AND Gate" << std::endl;
-
-
       bool lsb_lhs = byteblock_to_integer(merged.at(current_gate.lhs).value).GetBit(0);
       bool lsb_rhs = byteblock_to_integer(merged.at(current_gate.rhs).value).GetBit(0);
 
@@ -150,7 +143,6 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       merged[current_gate.output] = w;
 
     } else if (current_gate.type == GateType::XOR_GATE) {
-      //CUSTOM_LOG(lg, debug) << "Evaluator - In XOR Gate" << std::endl;
       GarbledWire w = merged.at(current_gate.lhs);
       CryptoPP::xorbuf(w.value, merged.at(current_gate.rhs).value, w.value.size());
       merged[current_gate.output] = w;
