@@ -242,10 +242,14 @@ std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> GarblerC
                                                     GarbledWire rhs_0, GarbledWire rhs_1,
                                                     SecByteBlock R) {
   // TODO: implement me!
+  static unsigned long pad = 0;
+
   bool permbit_lhs = byteblock_to_integer(lhs_0.value).GetBit(0);
   bool permbit_rhs = byteblock_to_integer(rhs_0.value).GetBit(0);
 
-  SecByteBlock padding(integer_to_byteblock(Integer::Zero()));
+  pad = pad + 1;
+
+  SecByteBlock padding(integer_to_byteblock(Integer(pad)));
   padding.CleanGrow(lhs_0.value.size());
 
   //first half gate
@@ -258,6 +262,11 @@ std::tuple<GarbledWire, CryptoPP::SecByteBlock, CryptoPP::SecByteBlock> GarblerC
   if (permbit_lhs) {
     CryptoPP::xorbuf(Wg0, Tg, Tg.size());
   }
+
+  pad = pad + 1;
+
+  padding = SecByteBlock(integer_to_byteblock(Integer(pad)));
+  padding.CleanGrow(lhs_0.value.size());
 
   //second half gate
   SecByteBlock Te = this->crypto_driver->hash_inputs(rhs_0.value, padding);

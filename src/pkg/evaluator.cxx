@@ -111,6 +111,7 @@ std::string EvaluatorClient::run(std::vector<int> input) {
   std::vector<GarbledWire> merged(garblers_inputs);
   merged.insert(merged.end(), my_inputs_from_garbler.begin(), my_inputs_from_garbler.end());
   merged.resize(this->circuit.num_wire);
+  unsigned long pad = 0;
 
   for (int i = 0; i < garbled_circuit.size(); i++) {
     GarbledGate current_gate_garbled = garbled_circuit.at(i);
@@ -123,10 +124,14 @@ std::string EvaluatorClient::run(std::vector<int> input) {
       SecByteBlock Tg = current_gate_garbled.entries.at(0);
       SecByteBlock Te = current_gate_garbled.entries.at(1);
 
-      SecByteBlock padding(integer_to_byteblock(Integer::Zero()));
+      pad = pad + 1;
+      SecByteBlock padding(integer_to_byteblock(Integer(pad)));
       padding.CleanGrow(merged.at(current_gate.lhs).value.size());
-
       SecByteBlock Wg = this->crypto_driver->hash_inputs(merged.at(current_gate.lhs).value, padding);
+
+      pad = pad + 1;
+      padding = SecByteBlock(integer_to_byteblock(Integer(pad)));
+      padding.CleanGrow(merged.at(current_gate.lhs).value.size());
       SecByteBlock We = this->crypto_driver->hash_inputs(merged.at(current_gate.rhs).value, padding);
 
       if (lsb_lhs) {
